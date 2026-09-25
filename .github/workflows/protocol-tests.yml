@@ -1,0 +1,12 @@
+name: protocol-tests
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build
+      - run: cmake --build build --target protocol_tests
+      - run: ctest --test-dir build --output-on-failure
