@@ -1,0 +1,45 @@
+name: windows-build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch SDRplay API 3.15 headers
+        shell: pwsh
+        run: |
+          git clone --depth 1 https://github.com/srcejon/sdrplayapi.git "$env:RUNNER_TEMP\sdrplayapi"
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          cmake -S . -B build -A x64 "-DSDRPLAY_ROOT=$env:RUNNER_TEMP\sdrplayapi"
+
+      - name: Build
+        shell: pwsh
+        run: |
+          cmake --build build --config Release --target duotcp protocol_tests
+
+      - name: Test
+        shell: pwsh
+        run: |
+          .\build\Release\protocol_tests.exe
+          ctest --test-dir build -C Release --output-on-failure
+
+      - name: Stage
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item .\build\Release\duotcp.exe .\dist\duotcp.exe
+          Copy-Item .\README.md .\dist\README.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: duotcp-windows-x64
+          path: dist
